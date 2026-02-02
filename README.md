@@ -37,7 +37,7 @@ pip install -e .
 from eurozone_velocity import NowcastingEngine, TIPSProcessor, DivisiaAggregates
 
 # 1. Process TIPS transaction data
-tips_processor = TIPSProcessor(aggregation_window='1H')
+tips_processor = TIPSProcessor(aggregation_window='1h')
 tips_processor.load_transaction_data('tips_data.csv')
 tips_features = tips_processor.get_nowcast_features()
 

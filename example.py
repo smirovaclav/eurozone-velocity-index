@@ -126,7 +126,7 @@ def main():
     
     # Step 2: Process TIPS data
     print("Step 2: Processing TIPS transaction data...")
-    tips_processor = TIPSProcessor(aggregation_window='1H')
+    tips_processor = TIPSProcessor(aggregation_window='1h')
     tips_processor.load_transaction_data(tips_data)
     tips_indicators = tips_processor.extract_consumer_indicators()
     tips_features = tips_processor.get_nowcast_features()
@@ -190,8 +190,9 @@ def main():
     print("Step 7: Creating visualizations...")
     
     # Convert nowcast history to DataFrame
-    nowcast_df = pd.DataFrame(engine.nowcast_history)
-    nowcast_df.index = recent_tips.index[:len(nowcast_df)]
+    if len(engine.nowcast_history) > 0:
+        nowcast_df = pd.DataFrame(engine.nowcast_history[:len(recent_tips)])
+        nowcast_df.index = recent_tips.index[:len(nowcast_df)]
     
     # Create plots
     try:

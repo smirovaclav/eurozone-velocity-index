@@ -49,6 +49,11 @@ htmlcov/
 data/
 !examples/data/
 
+# Output files
+*.png
+*.pdf
+*.svg
+
 # Logs
 *.log
 

@@ -71,13 +71,17 @@ class NowcastingEngine:
         ])
         
         # Observation matrix (how observations relate to state)
-        self.H = np.random.randn(self.obs_dim, self.state_dim) * 0.1
+        # Initialize with smaller weights and focus on first few features
+        self.H = np.zeros((self.obs_dim, self.state_dim))
+        # Set first few features to have non-zero weights
+        n_important = min(10, self.obs_dim)
+        self.H[:n_important, :] = np.random.randn(n_important, self.state_dim) * 0.01
         
         # Process noise covariance
         self.Q = np.eye(self.state_dim) * 0.01
         
-        # Measurement noise covariance
-        self.R = np.eye(self.obs_dim) * 0.1
+        # Measurement noise covariance - larger for robustness
+        self.R = np.eye(self.obs_dim) * 1.0
         
     def kalman_predict(self) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -120,18 +124,35 @@ class NowcastingEngine:
         # Innovation: y = z - H * x_pred
         innovation = observation - self.H @ state_pred
         
+        # Clip innovation to prevent numerical issues
+        innovation = np.clip(innovation, -10, 10)
+        
         # Innovation covariance: S = H * P_pred * H' + R
         S = self.H @ cov_pred @ self.H.T + self.R
         
+        # Add small regularization for numerical stability
+        S += np.eye(self.obs_dim) * 1e-6
+        
         # Kalman gain: K = P_pred * H' * S^(-1)
-        K = cov_pred @ self.H.T @ np.linalg.inv(S)
+        try:
+            K = cov_pred @ self.H.T @ np.linalg.inv(S)
+        except np.linalg.LinAlgError:
+            # If inversion fails, use pseudo-inverse
+            K = cov_pred @ self.H.T @ np.linalg.pinv(S)
         
         # Update state: x = x_pred + K * innovation
         state_updated = state_pred + K @ innovation
         
+        # Clip state to reasonable bounds
+        state_updated = np.clip(state_updated, -100, 100)
+        
         # Update covariance: P = (I - K * H) * P_pred
         I = np.eye(self.state_dim)
         cov_updated = (I - K @ self.H) @ cov_pred
+        
+        # Ensure covariance remains positive definite
+        cov_updated = (cov_updated + cov_updated.T) / 2
+        cov_updated += np.eye(self.state_dim) * 1e-6
         
         return state_updated, cov_updated
     
@@ -197,7 +218,7 @@ class NowcastingEngine:
         """
         # Combine features
         features = pd.concat([tips_features, divisia_features], axis=1)
-        features = features.fillna(method='ffill').fillna(0)
+        features = features.ffill().fillna(0)
         
         # Initialize model
         self.initialize_model(features)
@@ -272,7 +293,7 @@ class NowcastingEngine:
         """
         # Combine current features
         current_features = pd.concat([tips_features, divisia_features], axis=1)
-        current_features = current_features.fillna(method='ffill').fillna(0)
+        current_features = current_features.ffill().fillna(0)
         
         predictions = []
         
