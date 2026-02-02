@@ -67,9 +67,9 @@ def handle_missing_values(data: pd.DataFrame,
     if method == 'interpolate':
         return data.interpolate(method='time', limit=limit)
     elif method == 'ffill':
-        return data.fillna(method='ffill', limit=limit)
+        return data.ffill(limit=limit)
     elif method == 'bfill':
-        return data.fillna(method='bfill', limit=limit)
+        return data.bfill(limit=limit)
     elif method == 'drop':
         return data.dropna()
     else:
